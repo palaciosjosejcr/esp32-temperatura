@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Conexión ESP32</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background: #f4f4f4;
+        }
+
+        .estado {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .punto {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: red;
+            box-shadow: 0 0 10px red;
+        }
+
+        #ultima {
+            font-size: 14px;
+            color: #444;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Estado del ESP32</h2>
+
+    <div class="estado">
+        <div id="punto" class="punto"></div>
+        <span id="estadoTexto">Desconectado</span>
+    </div>
+
+    <p id="ultima">Última conexión: —</p>
+
+    <script type="module">
+        // -----------------------------------
+        // CONFIGURACIÓN FIREBASE
+        // -----------------------------------
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDGwBBAw5GEVPhOMHJtUWyM84sxw9_cQcg",
+            databaseURL: "https://control-de-temperatura-e-c7ec4-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const punto = document.getElementById("punto");
+        const estadoTexto = document.getElementById("estadoTexto");
+        const ultima = document.getElementById("ultima");
+
+        let ultimoTimestamp = 0;
+
+        // Escuchar cambios en Firebase
+        onValue(ref(db, "estado"), (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            ultimoTimestamp = data.ultimaConexion;
+            actualizarEstado(true);
+            ultima.textContent = "Última conexión: " + new Date(data.ultimaConexion).toLocaleString();
+        });
+
+        function actualizarEstado(online) {
+            if (online) {
+                punto.style.background = "limegreen";
+                punto.style.boxShadow = "0 0 10px limegreen";
+                estadoTexto.textContent = "Conectado";
+            } else {
+                punto.style.background = "red";
+                punto.style.boxShadow = "0 0 10px red";
+                estadoTexto.textContent = "Desconectado";
+            }
+        }
+
+        // Cambiar a rojo si pasan más de 10 segundos sin actualización
+        setInterval(() => {
+            const ahora = Date.now();
+            if (ahora - ultimoTimestamp > 10000) {
+                actualizarEstado(false);
+            }
+        }, 1000);
+    </script>
+
+</body>
+</html>
